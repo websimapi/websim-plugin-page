@@ -30,26 +30,32 @@ Expected incoming message structure (JSON):
 */
 window.addEventListener("message", async (ev) => {
   try {
-    // Optionally restrict origin: if (ev.origin !== "https://trusted.origin") return;
-    const data = typeof ev.data === "string" ? JSON.parse(ev.data) : ev.data;
+    // Normalize incoming payload: accept raw JSON string, object, or wrapped {__ai_bridge:...}
+    const raw = typeof ev.data === "string" ? JSON.parse(ev.data) : ev.data;
+    const data = raw && raw.__ai_bridge ? raw : raw;
     if (!data || data.action !== "generate" || !data.type || !data.prompt) {
-      // ignore unrelated messages
       return;
     }
 
     const id = data.id || nanoid();
     log({ incoming: data }, `recv ${id} from ${ev.origin}`);
 
+    // determine best reply target: prefer ev.source (the window that sent the message), fallback to parent/opener
+    const replyTarget = (ev.source && typeof ev.source.postMessage === "function")
+      ? ev.source
+      : (window.parent && window.parent !== window ? window.parent : (window.opener || null));
+    const replyOrigin = ev.origin || "*";
+
     // acknowledge
-    postResponse({ id, status: "received", note: "Processing started" }, ev.source, ev.origin);
+    postResponse({ id, status: "received", note: "Processing started" }, replyTarget, replyOrigin);
 
     // let AI handler process and return result
-    postResponse({ id, status: "progress", stage: "ai_call" }, ev.source, ev.origin);
+    postResponse({ id, status: "progress", stage: "ai_call" }, replyTarget, replyOrigin);
     const result = await handleInstruction({ id, ...data, sourceOrigin: ev.origin });
 
     // final response
-    postResponse({ id, status: "done", result }, ev.source, ev.origin);
-    log({ outgoing: result }, `sent ${id} to ${ev.origin}`);
+    postResponse({ id, status: "done", result }, replyTarget, replyOrigin);
+    log({ outgoing: result }, `sent ${id} to ${replyOrigin}`);
 
   } catch (err) {
     console.error(err);
@@ -62,14 +68,13 @@ If embedded in iframe, parent is the host. If not, try window.opener else consol
 */
 function postResponse(payload, target = null, targetOrigin = "*"){
   const message = { __ai_bridge: true, ...payload };
-  if (target && typeof target.postMessage === "function") {
-    target.postMessage(message, targetOrigin);
-  } else if (window.parent && window.parent !== window) {
-    window.parent.postMessage(message, targetOrigin);
-  } else if (window.opener) {
-    window.opener.postMessage(message, targetOrigin);
+  // determine fallback target if none supplied
+  const finalTarget = target && typeof target.postMessage === "function"
+    ? target
+    : (window.parent && window.parent !== window ? window.parent : (window.opener || null));
+  if (finalTarget && typeof finalTarget.postMessage === "function") {
+    finalTarget.postMessage(message, targetOrigin ?? "*");
   } else {
-    // top-level page with no partner; still log
     console.info("postResponse (no target):", message);
   }
 }
@@ -88,4 +93,3 @@ document.getElementById("sendTest").addEventListener("click", async () => {
 });
 
 /* ...existing code... */
-
