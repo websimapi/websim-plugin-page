@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PostMessage AI Bridge</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "nanoid": "https://cdn.jsdelivr.net/npm/nanoid/nanoid.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <main class="container">
+    <h1>PostMessage AI Bridge</h1>
+    <p class="hint">This page supports inbound/outbound postMessage with JSON instructions. Open console to see messages.</p>
+
+    <section class="log" id="log" aria-live="polite"></section>
+
+    <details class="controls">
+      <summary>Send test messages (when embedded)</summary>
+      <div class="row">
+        <label>Type
+          <select id="testType">
+            <option value="text">Text</option>
+            <option value="image">Image</option>
+            <option value="tts">TTS</option>
+          </select>
+        </label>
+        <label>Prompt
+          <input id="testPrompt" value="Write a short friendly greeting." />
+        </label>
+        <button id="sendTest">Send test message</button>
+      </div>
+      <p class="small">Note: When run as a top-level page, outbound messages go to window.opener if present. When embedded, messages go to parent.</p>
+    </details>
+  </main>
+
+  <script type="module" src="main.js"></script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
+
